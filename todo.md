@@ -1,0 +1,60 @@
+### Necessary Features
+- Teams
+	- Name ✅
+	- Penalties (viewable) ✅
+		- Missing Week 1 Lineup✅
+		- Match Reports✅
+		- Missing Replays✅
+		- Automatic tracking
+	- Roster: List of Players (viewable)  ✅
+	- Substitutions made (viewable)
+- Players 
+	- Discord Username ✅
+	- display name ✅
+	- Primary battletag✅
+	- SC2 ingame name✅
+	- SC2 Race✅
+	- Primary Region✅
+	- list of alternative battletags for other owned battlenet accounts
+	- primary nephest link✅
+	- list of alternative nephest links
+	- team leader -> (captain, asst. capt, none)✅
+- Lineup (list of players)
+- Team Leader Features
+	- Add players  ✅
+	- Remove players✅
+	- Update players✅
+	- Submit lineup from players ✅
+	- Submit match reports
+- Scheduling
+	- Track which team is playing which team
+	- Copy chats from match channels to log channels ✅
+	- Clears match channels midnight Pacific on Sunday
+	- Pings match roles
+	- Pings in captain help
+- Current Week Tracking ✅
+- Map Array (for submitting and first map set by schedule) ✅
+- Track penalties ✅
+- Database Tables
+	- Players ✅
+	- Teams ✅
+	- Maps ✅
+	- Match Reports ✅
+- Match Report Processing
+	- Figure out if MRs agree, record inconsistencies
+- Liquipedia Code Generator
+	- Start of the season teams
+	- Weekly players
+	- Weekly results
+	- standings table
+- Track standings
+- Admin commands
+- Role Management
+	- Assigns Teams
+	- Assigns Captain
+	- Assigns Assistant Captain
+	- Assigns Team Management role
+	- Assigns Players to set role
+	- Assigns Team Management the whip role (can read their teams weekly match)
+	- Assigns race role (P, T, Z, R)
+- Database Backup
