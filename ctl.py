@@ -83,7 +83,6 @@ class dbAction:
           allowed = True
     if not allowed:
       return False
-
     '''
     check function signature
     '''

@@ -1,6 +1,7 @@
 import sys
 from ctl import *
 from ctlactions import *
+from constants import *
 import csv
 import io
 
@@ -17,12 +18,9 @@ maps = DBTable("maps",
                     ["name"])
 
 players = DBTable("players",
-                  ["discordUsername", "teamName", "displayName",
-                    "battletag", "sc2InGameName", "sc2race",
-                    "primaryRegion", "altBattleTags", "nephestLink",
-                    "altNephestLink", "teamLeader", "taggedToDelete"],
-                    {"discordUsername":"NOT NULL", "teamName":"NOT NULL"},
-                    ["discordUsername", "teamName"])
+                  PLAYERS_FIELDS,
+                  {"discordUsername":"NOT NULL", "teamName":"NOT NULL"},
+                  ["discordUsername", "teamName"])
 teams = DBTable("teams",
                 ["name", "roster", "lineup", "subsLeft", "week1LineupPenalty", "matchReportPenalty", "replayPenalty", "channelID"],
                 {"name":"NOT NULL",
@@ -55,16 +53,9 @@ dm.dupesDict[1243885793978618018] = 1243885805962002463
 ### Players
 dm.dbActions.append(dbAction(name = "newTeam", call = addNewTeam, paramNames = {"teamName"}, roles = ["Admins"]))
 dm.dbActions.append(dbAction(name = "deleteTeam", call = deleteTeam, paramNames = {"teamName"}, roles = ["Admins"]))
-dm.dbActions.append(dbAction(name = "newPlayer", call = addNewPlayer, paramNames=["playerName"], roles = [], channels = ["Team Channel"]))
+dm.dbActions.append(dbAction(name = "newPlayer", call = addNewPlayer, paramNames=["playerDiscordUsername"], roles = [], channels = ["Team Channel"]))
 dm.dbActions.append(dbAction(name = "deletePlayer", call = deletePlayer, paramNames = ["playerName"], roles = [], channels = ["Team Channel"]))
-dm.dbActions.append(dbAction(name = "editPlayer", call = editPlayer, paramNames = ["discordUsername",
-                                                                                  "displayName",
-                                                                                  "battletag",
-                                                                                  "sc2inGameName",
-                                                                                  "sc2race",
-                                                                                  "primaryRegion",
-                                                                                  "teamLeader",
-                                                                                  "nephestLink"], roles = [], channels = ["Team Channel"]))
+dm.dbActions.append(dbAction(name = "editPlayer", call = editPlayer, paramNames = EDIT_PLAYER_FIELDS, roles = [], channels = ["Team Channel"]))
 
 ### Teams
 dm.dbActions.append(dbAction(name = "setTeamChannel", call = setTeamChannel, paramNames = ["teamName", "channelID"], roles = ["Admins"]))
