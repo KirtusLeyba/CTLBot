@@ -19,7 +19,7 @@
 	- primary nephest link✅
 	- list of alternative nephest links ✅
 	- team leader -> (captain, asst. capt, none)✅
-- Lineup (list of players)
+- Lineup (list of players) ✅
 - Team Leader Features
 	- Add players  ✅
 	- Remove players✅

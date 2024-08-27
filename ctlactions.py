@@ -192,13 +192,14 @@ def showTeams(message, db, params):
   logs = ["Trying to grab teams"]
   try:
     r = "```"
-    teams = db.namedQuery("SELECT name, subsUsed FROM teams", ["name", "subsUsed"])
-    r += "name\tsubsUsed\n".expandtabs(20)
+    teams = db.namedQuery("SELECT name, subsLeft FROM teams", ["name", "subsLeft"])
+    r += "name\subsLeft\n".expandtabs(20)
     for team in teams:
-      r += "{}\t{}\n".format(team["name"], team["subsUsed"]).expandtabs(20)
+      r += "{}\t{}\n".format(team["name"], team["subsLeft"]).expandtabs(20)
     r += "```"
     logs.append(r)
-  except:
+  except Exception as e:
+    print(str(e))
     logs.append("Could not grab teams")
   return {"returnValue":[], "logs":logs, "files":[]}
 
@@ -320,8 +321,10 @@ def setLineup(message, db, params):
   try:
     teams = db.queryParams("SELECT lineup FROM teams WHERE name = ?", (teamName,))
     lineup = list(json.loads(teams[0][0]))
+    print(lineup)
     teams = db.queryParams("SELECT roster FROM teams WHERE name = ?", (teamName,))
     roster = list(json.loads(teams[0][0]))
+    print(roster)
 
     def checkPlayer(x):
       p = newlineup[x]
@@ -333,6 +336,7 @@ def setLineup(message, db, params):
 
     for i in range(5):
       tmp = checkPlayer(i)
+      print(i, tmp)
       if tmp == 1:
         logs.append("{} is not in this teams roster! Try again.".format(newlineup[i]))
         return {"returnValue":[], "logs":logs, "files":[]}
@@ -341,13 +345,43 @@ def setLineup(message, db, params):
         return {"returnValue":[], "logs":logs, "files":[]}
       elif tmp == 0:
         lineup[i] = newlineup[i]
+    print(lineup)
     lineupJSON = json.dumps(lineup)
+    print(lineupJSON)
     db.execParams("UPDATE teams SET lineup = ? WHERE name = ?", (lineupJSON, teamName))
     logs.append("lineup set Successfully to: {}".format(newlineup))
-  except:
+  except Exception as e:
+    print(str(e))
     logs.append("Failed to set lineup to {} for team {}".format(newlineup, teamName))
 
   return {"returnValue":[], "logs":logs, "files":[]}
+
+def viewLineup(message, db, params):
+  print("niner niner")
+  team = params[0]
+  logs = ["Trying to view lineup for team: {}".format(team)]
+  try:
+    header = ["set", "discordName", "inGameName", "battleTag", "race", "region", "nephest"]
+    rows = []
+    lineup = db.queryParams("SELECT lineup FROM teams WHERE name = ?", (team,))[0][0]
+    lineup = json.loads(lineup)
+    for i, player in enumerate(lineup):
+      player_info = db.queryParams("SELECT * FROM players WHERE discordUsername = ? AND teamName = ?", (player, team))[0]
+      row = ["Set {}".format(i+1), player_info[0], player_info[4], player_info[3], player_info[5], player_info[8]]
+      rows.append(row)
+
+    buff = io.StringIO()
+    writer = csv.writer(buff)
+    writer.writerow(header)
+    writer.writerows(rows)
+    buff.seek(0)
+    f = discord.File(buff, "{}_lineup.csv".format(team))
+    files = [f]
+  except Exception as e:
+    logs.append(str(e))
+    logs.append("Could not get lineup")
+    files = []
+  return {"returnValue":[], "logs":logs, "files":files}
 
 def newMap(message, db, params):
   name = params[0]

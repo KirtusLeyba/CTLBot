@@ -64,6 +64,7 @@ dm.dbActions.append(dbAction(name = "showPenalties", call = showPenalties, param
 dm.dbActions.append(dbAction(name = "changePenalties", call = changePenalties, paramNames = ["teamName", "penaltyType", "amount"], roles = ["Admins"]))
 dm.dbActions.append(dbAction(name = "showPlayers", call = showPlayers, paramNames = [], roles = []))
 dm.dbActions.append(dbAction(name = "setLineup", call = setLineup, paramNames = ["set1", "set2", "set3", "set4", "set5"], roles = [], channels = ["Team Channel"]))
+dm.dbActions.append(dbAction(name = "viewLineup", call = viewLineup, paramNames = ["teamName"], roles = ["Admins", "Captain", "Assistant Captain"], channels = []))
 
 ### Maps
 dm.dbActions.append(dbAction(name = "newMap", call = newMap, paramNames = ["mapName"], roles = ["Admins"]))
