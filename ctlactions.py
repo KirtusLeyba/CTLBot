@@ -1,6 +1,7 @@
 from ctl import *
 import csv
 import io
+from constants import *
 
 def teamsFromChannelID(db, channelID):
   teams = db.namedQueryParams("SELECT name FROM teams WHERE channelID = ?", ["name"], (str(channelID),))
@@ -14,10 +15,11 @@ def addNewTeam(message, db, params):
     db.execParams("INSERT INTO teams(name," +
                                 "roster," +
                                 "lineup," +
-                                "subsUsed)" +
+                                "subsLeft)" +
                                 " VALUES(?, ?, ?, ?);", teamData)
     logs.append("Successfully added team: {}".format(name))
-  except:
+  except Exception as e:
+    print(str(e))
     logs.append("Failed to add team {}".format(name))
   return {"returnValue":[], "logs":logs, "files":[]}
 
@@ -111,19 +113,10 @@ def deletePlayer(message, db, params):
   return {"returnValue":[], "logs":logs, "files":[]}
 
 def editPlayer(message, db, params):
+  newValues = {EDIT_PLAYER_FIELDS[i] : params[i] for i in range(0, len(params))}
   discordUsername = params[0]
-  displayName = params[1]
-  battletag = params[2]
-  sc2inGameName = params[3]
-  sc2race = params[4]
-  primaryRegion = params[5]
-  teamLeader = params[6]
-  nephestLink = params[7]
 
   logs = ["Trying to edit {}".format(discordUsername)]
-
-  validTeamLeaderNames = ["Captain", "Assistant Captain", "None"]
-  validRaces = ["Protoss", "Terran", "Zerg", "Random"]
 
   ### Figure out what team is adding a player
   teams = teamsFromChannelID(db, message.channel.id)
@@ -137,48 +130,32 @@ def editPlayer(message, db, params):
 
   originalPlayer = db.queryParams("SELECT * FROM players WHERE discordUsername = ? AND teamName = ?",
       (discordUsername, teamName))[0]
-  # TODO: FIX THIS SHIT
-  originalDisplayName = originalPlayer[2]
-  originalBattleTag = originalPlayer[3]
-  originalsc2InGameName = originalPlayer[4]
-  originalsc2Race = originalPlayer[5]
-  originalPrimaryRegion = originalPlayer[6]
-  originalNephestLink = originalPlayer[7]
-  originalTeamLeader = originalPlayer[9]
+  
+  originalValues = {PLAYERS_FIELDS[i] : originalPlayer[i] for i in range(2, len(PLAYERS_FIELDS) - 1)} # -1 because we don't want to update the delete flag
+  for key, value in newValues.items():
+    if len(value.strip(" ")) == 0:
+      newValues[key] = originalValues[key]
 
-  if len(displayName.strip(" ")) == 0:
-    displayName = originalDisplayName
-  if len(battletag.strip(" ")) == 0:
-    battletag = originalBattleTag
-  if len(sc2inGameName.strip(" ")) == 0:
-    sc2inGameName = originalsc2InGameName
-  if len(sc2race.strip(" ")) == 0:
-    sc2race = originalsc2Race
-  if len(primaryRegion.strip(" ")) == 0:
-    primaryRegion = originalPrimaryRegion
-  if len(nephestLink.strip(" ")) == 0:
-    nephestLink = originalNephestLink
-  if len(teamLeader.strip(" ")) == 0:
-    teamLeader = originalTeamLeader
+  if newValues['teamLeader'] not in VALID_TEAM_LEADER_NAMES:
+    logs.append("WARN: teamLeader value not recognized, reverting to {}.".format(originalValues['teamLeader']))
+    newValues['teamLeader'] = originalValues['teamLeader']
 
-  if teamLeader not in validTeamLeaderNames:
-    logs.append("WARN: teamLeader value not recognized, reverting to {}.".format(originalTeamLeader))
-    teamLeader = originalTeamLeader
-
-  if sc2race not in validRaces:
-    sc2race = originalsc2Race
-    logs.append("WARN: sc2race value not recognized, reverting to {}.".format(originalsc2Race))
+  if newValues['sc2race'] not in VALID_RACES:
+    logs.append("WARN: sc2race value not recognized, reverting to {}.".format(originalValues['sc2race']))
+    newValues['sc2race'] = originalValues['sc2race']
 
   try:
-    values = {"displayName": displayName,
-              "battletag": battletag,
-              "sc2InGameName": sc2inGameName,
-              "sc2race": sc2race,
-              "primaryRegion": primaryRegion,
-              "teamLeader": teamLeader,
-              "nephestLink": nephestLink,
+    values = {"displayName": newValues['displayName'],
+              "battletag": newValues['battletag'],
+              "sc2InGameName": newValues['sc2inGameName'],
+              "sc2race": newValues['sc2race'],
+              "primaryRegion": newValues['primaryRegion'],
+              "teamLeader": newValues['teamLeader'],
+              "nephestLink": newValues['nephestLink'],
               "discordUsername": discordUsername,
-              "teamName": teamName}
+              "teamName": teamName,
+              "altBattleTag": newValues['altBattleTag'],
+              "altNephestLink": newValues['altNephestLink']}
     db.execParams("UPDATE players SET "+
                   "displayName = :displayName,"+
                   "battletag = :battletag,"+
@@ -186,10 +163,13 @@ def editPlayer(message, db, params):
                   "sc2race = :sc2race,"+
                   "primaryRegion = :primaryRegion,"+
                   "teamLeader = :teamLeader,"+
-                  "nephestLink = :nephestLink WHERE discordUsername = :discordUsername and teamName = :teamName",
+                  "nephestLink = :nephestLink,"+
+                  "altBattleTag = :altBattleTag,"+
+                  "altNephestLink = :altNephestLink WHERE discordUsername = :discordUsername and teamName = :teamName",
                   values)
     logs.append("{} updated Successfully".format(discordUsername))
-  except:
+  except Exception as e:
+    print(str(e))
     logs.append("Failed to update {}".format(discordUsername))
 
   return {"returnValue":[], "logs":logs, "files":[]}
@@ -203,7 +183,8 @@ def setTeamChannel(message, db, params):
   try:
     db.execParams("UPDATE teams SET channelID = ? WHERE name = ?", (channelID, name))
     logs.append("Succeeded setting team {} channel to {}".format(name, channelID))
-  except:
+  except Exception as e:
+    print(str(e))
     logs.append("Failed to set team channel")
   return {"returnValue":[], "logs":logs, "files":[]}
 
@@ -211,13 +192,14 @@ def showTeams(message, db, params):
   logs = ["Trying to grab teams"]
   try:
     r = "```"
-    teams = db.namedQuery("SELECT name, subsUsed FROM teams", ["name", "subsUsed"])
-    r += "name\tsubsUsed\n".expandtabs(20)
+    teams = db.namedQuery("SELECT name, subsLeft FROM teams", ["name", "subsLeft"])
+    r += "name\subsLeft\n".expandtabs(20)
     for team in teams:
-      r += "{}\t{}\n".format(team["name"], team["subsUsed"]).expandtabs(20)
+      r += "{}\t{}\n".format(team["name"], team["subsLeft"]).expandtabs(20)
     r += "```"
     logs.append(r)
-  except:
+  except Exception as e:
+    print(str(e))
     logs.append("Could not grab teams")
   return {"returnValue":[], "logs":logs, "files":[]}
 
@@ -225,7 +207,7 @@ def showPlayers(message, db, params):
   logs = ["Trying to grab players"]
   try:
     players = db.query("SELECT * FROM players")
-    header = ["discName", "team", "dispName", "battleTag", "inGame", "race", "region", "nephest", "teamLeader"]
+    header = ["discName", "team", "dispName", "battleTag", "inGame", "race", "region", "altBattleTag", "nephest", "altNephestLink", "teamLeader"]
     rows = []
     for player in players:
       row = []
@@ -236,7 +218,9 @@ def showPlayers(message, db, params):
       sc2InGameName = player[4]
       sc2Race = player[5]
       primaryRegion = player[6]
+      altBattleTag = player[7]
       nephestLink = player[8]
+      altNephestLink = player[9]
       teamLeader = player[10]
       row.append(discordUsername)
       row.append(teamName)
@@ -245,9 +229,12 @@ def showPlayers(message, db, params):
       row.append(sc2InGameName)
       row.append(sc2Race)
       row.append(primaryRegion)
+      row.append(altBattleTag)
       row.append(nephestLink)
+      row.append(altNephestLink)
       row.append(teamLeader)
       rows.append(row)
+      print(row)
 
     buff = io.StringIO()
     writer = csv.writer(buff)
@@ -286,6 +273,7 @@ def changePenalties(message, db, params):
   teamName = params[0]
   penaltyType = params[1]
   amount = int(params[2])
+  print(teamName, penaltyType, amount)
   result = {"returnValue":[], "logs":[], "files":[]}
 
   penaltyTypes = ["week1LineupPenalty", "matchReportPenalty", "replayPenalty"]
@@ -299,6 +287,7 @@ def changePenalties(message, db, params):
 
   newPenalties = {}
   for p in penaltyTypes:
+    print(p, newPenalties, oldPenalties, penaltyTypes)
     if p == penaltyType:
       newPenalties[p] = oldPenalties[0][p] + amount
     else:
@@ -332,8 +321,10 @@ def setLineup(message, db, params):
   try:
     teams = db.queryParams("SELECT lineup FROM teams WHERE name = ?", (teamName,))
     lineup = list(json.loads(teams[0][0]))
+    print(lineup)
     teams = db.queryParams("SELECT roster FROM teams WHERE name = ?", (teamName,))
     roster = list(json.loads(teams[0][0]))
+    print(roster)
 
     def checkPlayer(x):
       p = newlineup[x]
@@ -345,6 +336,7 @@ def setLineup(message, db, params):
 
     for i in range(5):
       tmp = checkPlayer(i)
+      print(i, tmp)
       if tmp == 1:
         logs.append("{} is not in this teams roster! Try again.".format(newlineup[i]))
         return {"returnValue":[], "logs":logs, "files":[]}
@@ -353,13 +345,43 @@ def setLineup(message, db, params):
         return {"returnValue":[], "logs":logs, "files":[]}
       elif tmp == 0:
         lineup[i] = newlineup[i]
+    print(lineup)
     lineupJSON = json.dumps(lineup)
+    print(lineupJSON)
     db.execParams("UPDATE teams SET lineup = ? WHERE name = ?", (lineupJSON, teamName))
     logs.append("lineup set Successfully to: {}".format(newlineup))
-  except:
+  except Exception as e:
+    print(str(e))
     logs.append("Failed to set lineup to {} for team {}".format(newlineup, teamName))
 
   return {"returnValue":[], "logs":logs, "files":[]}
+
+def viewLineup(message, db, params):
+  print("niner niner")
+  team = params[0]
+  logs = ["Trying to view lineup for team: {}".format(team)]
+  try:
+    header = ["set", "discordName", "inGameName", "battleTag", "race", "region", "nephest"]
+    rows = []
+    lineup = db.queryParams("SELECT lineup FROM teams WHERE name = ?", (team,))[0][0]
+    lineup = json.loads(lineup)
+    for i, player in enumerate(lineup):
+      player_info = db.queryParams("SELECT * FROM players WHERE discordUsername = ? AND teamName = ?", (player, team))[0]
+      row = ["Set {}".format(i+1), player_info[0], player_info[4], player_info[3], player_info[5], player_info[8]]
+      rows.append(row)
+
+    buff = io.StringIO()
+    writer = csv.writer(buff)
+    writer.writerow(header)
+    writer.writerows(rows)
+    buff.seek(0)
+    f = discord.File(buff, "{}_lineup.csv".format(team))
+    files = [f]
+  except Exception as e:
+    logs.append(str(e))
+    logs.append("Could not get lineup")
+    files = []
+  return {"returnValue":[], "logs":logs, "files":files}
 
 def newMap(message, db, params):
   name = params[0]
@@ -396,6 +418,8 @@ def showMaps(message, db, params):
     name = m["name"]
     r = "```{}```".format(name)
     result["logs"].append(r)
+  if not maps:
+    result["logs"].append("There are no maps to get.")
 
   return result
 
@@ -524,6 +548,5 @@ def runTests(message, db, params):
   result["returnValue"].extend(newResult["returnValue"])
   result["logs"].extend(newResult["logs"])
   result["files"].extend(newResult["files"])
-
 
   return result

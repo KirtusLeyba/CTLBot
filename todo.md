@@ -15,11 +15,11 @@
 	- SC2 ingame name✅
 	- SC2 Race✅
 	- Primary Region✅
-	- list of alternative battletags for other owned battlenet accounts
+	- list of alternative battletags for other owned battlenet accounts ✅
 	- primary nephest link✅
-	- list of alternative nephest links
+	- list of alternative nephest links ✅
 	- team leader -> (captain, asst. capt, none)✅
-- Lineup (list of players)
+- Lineup (list of players) ✅
 - Team Leader Features
 	- Add players  ✅
 	- Remove players✅
